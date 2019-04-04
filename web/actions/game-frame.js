@@ -3,7 +3,10 @@
 
 import raf from 'raf';
 
-import { DROP_FRAMES_ACCELERATED } from 'shared/constants/grid';
+import { 
+  DROP_FRAMES_ACCELERATED,
+  FPS
+} from 'shared/constants/grid';
 import { getPlayer, allPlayersReady } from 'shared/reducers/game';
 import { getCurGame } from '../reducers/cur-game';
 import { getCurUser } from '../reducers/cur-user';
@@ -15,8 +18,7 @@ const now =
     ? () => performance.now()
     : () => Date.now();
 
-const FPS = 60;
-const frameDuration = 1000 / FPS;
+const frameDurationMs = 1000 / FPS;
 
 // This changes too fast (60fps) to keep it in the store's state
 let yProgress = 0;
@@ -71,6 +73,6 @@ function scheduleFrame(cb) {
   timeBegin = now();
   animationHandle = raf(() => {
     const timeEnd = now();
-    cb((timeEnd - timeBegin) / frameDuration);
+    cb((timeEnd - timeBegin) / frameDurationMs);
   });
 }

@@ -6,7 +6,8 @@ import {
   WELL_COLS,
   DROP_FRAMES_DEFAULT,
   DROP_FRAMES_DECREMENT,
-  LINE_CLEAR_BONUSES
+  LINE_CLEAR_BONUSES,
+  FPS
 } from '../constants/grid';
 import { SHAPES, COLORS } from '../constants/tetromino';
 import {
@@ -39,6 +40,8 @@ import type {
   QuakeSuffix
 } from '../types/state';
 import type { ActionId, GameAction } from '../types/actions';
+
+const frameDurationSeconds = 1 / FPS;
 
 export function gameReducer(state: void | Game, action: GameAction): Game {
   if (!state) {
@@ -582,14 +585,26 @@ function rewardClearedBlocks(game: Game, userId: UserId): Game {
     points += LINE_CLEAR_BONUSES[blocksCleared.length - 1] * (lines + 1);
   }
 
+  const newScore = score + points;
+
+  // https://tetris.fandom.com/wiki/Tetris_Worlds#Gravity
+  // Max level is 14 (0-indexed)
+  // Linear:    Generic 4000 points a level
+  // Quadratic: Custom curve for faster level increases at start, then 
+  //            slows down when each increase matters more. Has y-limit 
+  //            of 15, so parseInt and max is 14.
+  const quadraticLevel = parseInt(15 + (-15 / Math.pow(1 + (newScore/4000/32), 1.5)));
+  //const linearLevel = Math.min(parseInt(newScore / 4000), 14);
+  const gravitySeconds = Math.pow((0.8 - (quadraticLevel * 0.007)), quadraticLevel);
+
   return {
     ...updatePlayer(game, userId, {
-      score: score + points,
+      score: newScore,
       lines: lines + blocksCleared.length
     }),
     // Increase speed whenever a line is cleared (fast game)
     dropFrames: blocksCleared.length
-      ? dropFrames - DROP_FRAMES_DECREMENT
+      ? gravitySeconds / frameDurationSeconds
       : dropFrames
   };
 }
